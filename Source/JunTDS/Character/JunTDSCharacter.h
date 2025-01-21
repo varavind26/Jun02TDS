@@ -7,6 +7,12 @@
 #include "JunTDS/FuncLibrary/Types.h"
 #include "JunTDSCharacter.generated.h"
 
+USTRUCT(BlueprintType)
+struct FCharacterSpeedInfo
+{
+	GENERATED_BODY()
+};
+
 UCLASS(Blueprintable)
 class AJunTDSCharacter : public ACharacter
 {
@@ -44,7 +50,16 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
 		EMovementState MovementState = EMovementState::Run_State;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-		FCharacterSpeed MovementInfo;
+		FCharacterSpeed MovementSpeedInfo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool SprintRunEnable = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool WalkEnable = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool AimEnable = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool RunEnable = true;
 
 	UFUNCTION()
 		void InputAxisX(float value);
@@ -62,6 +77,6 @@ public:
 		void CharacterUpdate();
 
 	UFUNCTION(BlueprintCallable)
-		void ChangeMovementState(EMovementState NewMovementState);
+		void ChangeMovementState();
 };
 

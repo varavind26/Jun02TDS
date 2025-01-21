@@ -132,13 +132,19 @@ void AJunTDSCharacter::CharacterUpdate()
 	switch (MovementState)
 	{
 	case EMovementState::Aim_State:
-		ResSpeed = MovementInfo.AimSpeed;
+		ResSpeed = MovementSpeedInfo.AimSpeed;
+		break;
+	case EMovementState::AimWalk_State:
+		ResSpeed = MovementSpeedInfo.AimWalkSpeed;
 		break;
 	case EMovementState::Walk_State:
-		ResSpeed = MovementInfo.WalkSpeed;
+		ResSpeed = MovementSpeedInfo.WalkSpeed;
 		break;
 	case EMovementState::Run_State:
-		ResSpeed = MovementInfo.RunSpeed;
+		ResSpeed = MovementSpeedInfo.RunSpeed;
+		break;
+	case EMovementState::SprintRun_State:
+		ResSpeed = MovementSpeedInfo.SprintRunSpeed;
 		break;
 	default:
 		break;
@@ -147,9 +153,39 @@ void AJunTDSCharacter::CharacterUpdate()
 	GetCharacterMovement()->MaxWalkSpeed = ResSpeed;
 }
 
-void AJunTDSCharacter::ChangeMovementState(EMovementState NewMovementState)
+void AJunTDSCharacter::ChangeMovementState()
 {
-	MovementState = NewMovementState;
+	if (!WalkEnable && !SprintRunEnable && !AimEnable)
+	{
+		MovementState = EMovementState::Run_State;
+	}
+	else
+	{
+		if (SprintRunEnable)
+		{
+			WalkEnable = false;
+			AimEnable = false;
+			MovementState = EMovementState::SprintRun_State;
+		}
+		if (WalkEnable && !SprintRunEnable && AimEnable)
+		{
+			MovementState = EMovementState::AimWalk_State;
+		}
+		else
+		{
+			if (WalkEnable && !SprintRunEnable && !AimEnable)
+			{
+				MovementState = EMovementState::Walk_State;
+			}
+			else
+			{
+				if (!WalkEnable && !SprintRunEnable && AimEnable)
+				{
+					MovementState = EMovementState::Aim_State;
+				}
+			}
+		}
+	}
 	CharacterUpdate();
 }
 
