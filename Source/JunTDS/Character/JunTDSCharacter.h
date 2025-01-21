@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "JunTDS/FuncLibrary/Types.h"
 #include "JunTDSCharacter.generated.h"
 
 UCLASS(Blueprintable)
@@ -16,6 +17,8 @@ public:
 
 	// Called every frame.
 	virtual void Tick(float DeltaSeconds) override;
+
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 	/** Returns TopDownCameraComponent subobject **/
 	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
@@ -36,5 +39,29 @@ private:
 	/** A decal that projects to the cursor location. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UDecalComponent* CursorToWorld;
+
+public:
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
+		EMovementState MovementState = EMovementState::Run_State;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		FCharacterSpeed MovementInfo;
+
+	UFUNCTION()
+		void InputAxisX(float value);
+	UFUNCTION()
+		void InputAxisY(float value);
+
+	float AxisX = 0.0f;
+	float AxisY = 0.0f;
+	// Tick Func
+
+	UFUNCTION()
+		void MovementTick(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+		void CharacterUpdate();
+
+	UFUNCTION(BlueprintCallable)
+		void ChangeMovementState(EMovementState NewMovementState);
 };
 

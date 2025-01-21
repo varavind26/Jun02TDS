@@ -2,7 +2,7 @@
 
 #include "JunTDSGameMode.h"
 #include "JunTDSPlayerController.h"
-#include "JunTDSCharacter.h"
+#include "JunTDS/Character/JunTDSCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 AJunTDSGameMode::AJunTDSGameMode()

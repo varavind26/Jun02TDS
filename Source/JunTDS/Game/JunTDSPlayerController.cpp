@@ -4,7 +4,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Runtime/Engine/Classes/Components/DecalComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
-#include "JunTDSCharacter.h"
+#include "JunTDS/Character/JunTDSCharacter.h"
 #include "Engine/World.h"
 
 AJunTDSPlayerController::AJunTDSPlayerController()
