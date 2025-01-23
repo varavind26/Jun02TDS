@@ -6,6 +6,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
@@ -113,16 +114,37 @@ void AJunTDSCharacter::InputAxisY(float Value)
 
 void AJunTDSCharacter::MovementTick(float DeltaTime)
 {
-	AddMovementInput(FVector(1.0f, 0.0f, 0.0f), AxisX);
-	AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
-
 	APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (myController)
 	{
+		// Разваричваем персонажа в сторону курсора
 		FHitResult ResultHit;
 		myController->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery6, false, ResultHit);
 		float FindRotatorResultYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), ResultHit.Location).Yaw;
 		SetActorRotation(FQuat(FRotator(0.0f, FindRotatorResultYaw, 0.0f)));
+
+		//AddMovementInput(FVector(1.0f, 0.0f, 0.0f), AxisX);
+		//AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
+
+		// Персонаж движется вперед в направлении курсора
+		
+		FVector ForwardDirection = (ResultHit.Location - GetActorLocation()).GetSafeNormal();
+		ForwardDirection.Normalize();
+		AddMovementInput(ForwardDirection, AxisX);
+
+		// Персонаж движется влево-вправо относительно курсора
+		if (AxisX>0)
+		{
+			SprintRunEnable = true;
+			AddMovementInput(FVector(0.0f, 0.0f, 0.0f), AxisY);
+		}
+		else
+		{
+			SprintRunEnable = false;
+			FVector Strafe = UKismetMathLibrary::RotateAngleAxis(GetMesh()->GetForwardVector(), 180.f, FVector::UpVector);
+			Strafe.Normalize();
+			AddMovementInput(Strafe, AxisY);
+		}
 	}
 }
 

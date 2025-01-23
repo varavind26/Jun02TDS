@@ -61,6 +61,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		bool RunEnable = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		FVector StrafeVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector CursorLocation;
+
 	UFUNCTION()
 		void InputAxisX(float value);
 	UFUNCTION()
