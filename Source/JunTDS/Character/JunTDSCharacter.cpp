@@ -114,6 +114,7 @@ void AJunTDSCharacter::InputAxisY(float Value)
 
 void AJunTDSCharacter::MovementTick(float DeltaTime)
 {
+	
 	APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (myController)
 	{
@@ -127,22 +128,18 @@ void AJunTDSCharacter::MovementTick(float DeltaTime)
 		//AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
 
 		// ѕерсонаж движетс€ вперед в направлении курсора
-		
 		FVector ForwardDirection = (ResultHit.Location - GetActorLocation()).GetSafeNormal();
 		ForwardDirection.Normalize();
 		AddMovementInput(ForwardDirection, AxisX);
-
+		
 		// ѕерсонаж движетс€ влево-вправо относительно курсора
-		if (AxisX>0)
+		if (SprintRunEnable)
 		{
-			SprintRunEnable = true;
-			AddMovementInput(FVector(0.0f, 0.0f, 0.0f), AxisY);
+			AddMovementInput(FVector(0.0f,0.0f,0.0f), AxisY);
 		}
 		else
 		{
-			SprintRunEnable = false;
-			FVector Strafe = UKismetMathLibrary::RotateAngleAxis(GetMesh()->GetForwardVector(), 180.f, FVector::UpVector);
-			Strafe.Normalize();
+			FVector Strafe = UKismetMathLibrary::RotateAngleAxis(ForwardDirection, 90.f, FVector::UpVector);
 			AddMovementInput(Strafe, AxisY);
 		}
 	}
@@ -177,37 +174,49 @@ void AJunTDSCharacter::CharacterUpdate()
 
 void AJunTDSCharacter::ChangeMovementState()
 {
+	FVector LastMovementInputVector = GetLastMovementInputVector();
+	bool IsMovingForward = FVector::DotProduct(LastMovementInputVector, GetActorForwardVector()) > 0;
+	
+	if (SprintRunEnable && !IsMovingForward)
+	{
+		SprintRunEnable = false;
+	}
+
 	if (!WalkEnable && !SprintRunEnable && !AimEnable)
 	{
 		MovementState = EMovementState::Run_State;
 	}
 	else
 	{
-		if (SprintRunEnable)
+		if (SprintRunEnable && IsMovingForward)
 		{
 			WalkEnable = false;
 			AimEnable = false;
 			MovementState = EMovementState::SprintRun_State;
 		}
-		if (WalkEnable && !SprintRunEnable && AimEnable)
-		{
-			MovementState = EMovementState::AimWalk_State;
-		}
 		else
 		{
-			if (WalkEnable && !SprintRunEnable && !AimEnable)
+			if (WalkEnable && !SprintRunEnable && AimEnable)
 			{
-				MovementState = EMovementState::Walk_State;
+				MovementState = EMovementState::AimWalk_State;
 			}
 			else
 			{
-				if (!WalkEnable && !SprintRunEnable && AimEnable)
+				if (WalkEnable && !SprintRunEnable && !AimEnable)
 				{
-					MovementState = EMovementState::Aim_State;
+					MovementState = EMovementState::Walk_State;
+				}
+				else
+				{
+					if (!WalkEnable && !SprintRunEnable && AimEnable)
+					{
+						MovementState = EMovementState::Aim_State;
+					}
 				}
 			}
 		}
 	}
+
 	CharacterUpdate();
 }
 
