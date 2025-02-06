@@ -6,7 +6,6 @@
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
@@ -14,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/World.h"
+#include "JunTDS/Game/JunTDSGameInstance.h"
 
 AJunTDSCharacter::AJunTDSCharacter()
 {
@@ -26,7 +26,7 @@ AJunTDSCharacter::AJunTDSCharacter()
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Rotate character to moving direction
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Rotate character to moving direction
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bConstrainToPlane = true;
 	GetCharacterMovement()->bSnapToPlaneAtStart = true;
@@ -49,9 +49,7 @@ AJunTDSCharacter::AJunTDSCharacter()
 	CursorToWorld->SetupAttachment(RootComponent);
 	static ConstructorHelpers::FObjectFinder<UMaterial> DecalMaterialAsset(TEXT("Material'/Game/Blueprints/Character/M_Cursor_Decal.M_Cursor_Decal'"));
 	if (DecalMaterialAsset.Succeeded())
-	{
 		CursorToWorld->SetDecalMaterial(DecalMaterialAsset.Object);
-	}
 	CursorToWorld->DecalSize = FVector(16.0f, 32.0f, 32.0f);
 	CursorToWorld->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f).Quaternion());
 
@@ -90,8 +88,56 @@ void AJunTDSCharacter::Tick(float DeltaSeconds)
 			CursorToWorld->SetWorldRotation(CursorR);
 		}
 	}
-
 	MovementTick(DeltaSeconds);
+}
+
+void AJunTDSCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	InitWeapon(InitWeaponName);
+}
+
+void AJunTDSCharacter::InitWeapon(FName IdWeaponName)
+{
+	UJunTDSGameInstance* myGI = Cast<UJunTDSGameInstance>(GetGameInstance());
+	FWeaponInfo myWeaponInfo;
+	if (myGI)
+	{
+		if (myGI->GetWeaponInfoByName(IdWeaponName, myWeaponInfo))
+		{
+			if (myWeaponInfo.WeaponClass)
+			{
+				FVector SpawnLocation = FVector(0);
+				FRotator SpawnRotation = FRotator(0);
+
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				SpawnParams.Owner = GetOwner();
+				SpawnParams.Instigator = GetInstigator();
+
+				AWeaponDefault* myWeapon = Cast<AWeaponDefault>(GetWorld()->SpawnActor(myWeaponInfo.WeaponClass, &SpawnLocation, &SpawnRotation, SpawnParams));
+				if (myWeapon)
+				{
+					FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
+					myWeapon->AttachToComponent(GetMesh(), Rule, FName("hand_r_weaponSocket"));
+					CurrentWeapon = myWeapon;
+
+					myWeapon->WeaponSetting = myWeaponInfo;
+					myWeapon->WeaponInfo.Round = myWeaponInfo.MaxRound;
+					myWeapon->ReloadTime = myWeaponInfo.ReloadTime;
+					myWeapon->UpdateStateWeapon(MovementState);
+
+					myWeapon->OnWeaponReloadStart.AddDynamic(this, &AJunTDSCharacter::WeaponReloadStart);
+					myWeapon->OnWeaponReloadEnd.AddDynamic(this, &AJunTDSCharacter::WeaponReloadEnd);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ATPSCharacter::InitWeapon - Weapon not found in table -NULL"));
+		}
+	}
 }
 
 void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
@@ -100,50 +146,142 @@ void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputCompon
 
 	NewInputComponent->BindAxis(TEXT("MoveForward"), this, & AJunTDSCharacter::InputAxisX);
 	NewInputComponent->BindAxis(TEXT("MoveRight"), this, & AJunTDSCharacter::InputAxisY);
+
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::InputAttackPressed);
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::InputAttackReleased);
+
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnSprintPressed);
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnSprintReleased);
+
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnAimPressed);
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnAimReleased);
+
+	NewInputComponent->BindAction(TEXT("ReloadEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::TryReloadWeapon);
+}
+void AJunTDSCharacter::OnAimPressed()
+{
+	AimEnable = true;
+	ChangeMovementState();
+}
+
+void AJunTDSCharacter::OnAimReleased()
+{
+	AimEnable = false;
+	ChangeMovementState();
+}
+
+void AJunTDSCharacter::OnSprintPressed()
+{
+	if (AxisX > 0.1f)
+	{
+		SprintRunEnable = true;
+		AttackCharEvent(false);
+		ChangeMovementState();
+	}
+}
+
+void AJunTDSCharacter::OnSprintReleased()
+{
+	SprintRunEnable = false;
+	ChangeMovementState();
+}
+
+void AJunTDSCharacter::AttackCharEvent(bool bIsFiring)
+{
+	AWeaponDefault* myWeapon = nullptr;
+	myWeapon = GetCurrentWeapon();
+	if (SprintRunEnable)
+	{
+		myWeapon->SetWeaponStateFire(false);
+		return;
+	}
+
+	myWeapon->SetWeaponStateFire(bIsFiring);
 }
 
 void AJunTDSCharacter::InputAxisX(float Value)
 {
-	AxisX = Value;
+	if (SprintRunEnable && Value <= 0.0f)
+	{
+		OnSprintReleased();
+	}
+
+	AxisX = SprintRunEnable ? FMath::Clamp(Value, 0.0f, 1.0f) : Value;
 }
 
 void AJunTDSCharacter::InputAxisY(float Value)
 {
-	AxisY = Value;
+	AxisY = SprintRunEnable ? 0.0f : Value;
+}
+
+void AJunTDSCharacter::InputAttackPressed()
+{
+	AttackCharEvent(true);
+}
+
+void AJunTDSCharacter::InputAttackReleased()
+{
+	AttackCharEvent(false);
 }
 
 void AJunTDSCharacter::MovementTick(float DeltaTime)
 {
-	
 	APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (myController)
 	{
-		// Разваричваем персонажа в сторону курсора
+		// Поворот персонажа к курсору
 		FHitResult ResultHit;
 		myController->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery6, false, ResultHit);
 		float FindRotatorResultYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), ResultHit.Location).Yaw;
 		SetActorRotation(FQuat(FRotator(0.0f, FindRotatorResultYaw, 0.0f)));
 
-		//AddMovementInput(FVector(1.0f, 0.0f, 0.0f), AxisX);
-		//AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
-
-		// Персонаж движется вперед в направлении курсора
+		// Расчет векторов движения
 		FVector ForwardDirection = (ResultHit.Location - GetActorLocation()).GetSafeNormal();
+		ForwardDirection.Z = 0;
 		ForwardDirection.Normalize();
-		AddMovementInput(ForwardDirection, AxisX);
-		
-		// Персонаж движется влево-вправо относительно курсора
+		FVector StrafeDirection = UKismetMathLibrary::RotateAngleAxis(ForwardDirection, 90.0f, FVector::UpVector);
+
 		if (SprintRunEnable)
 		{
-			AddMovementInput(FVector(0.0f,0.0f,0.0f), AxisY);
+			AddMovementInput(ForwardDirection, FMath::Clamp(AxisX, 0.0f, 1.0f));
 		}
 		else
 		{
-			FVector Strafe = UKismetMathLibrary::RotateAngleAxis(ForwardDirection, 90.f, FVector::UpVector);
-			AddMovementInput(Strafe, AxisY);
+			AddMovementInput(ForwardDirection, AxisX);
+			AddMovementInput(StrafeDirection, AxisY);
+
+			if (CurrentWeapon)
+			{
+				FVector Displacement = FVector(0);
+				switch (MovementState)
+				{
+				case EMovementState::Aim_State:
+					Displacement = FVector(0.0f, 0.0f, 160.0f);
+					CurrentWeapon->ShouldReduceDispersion = true;
+					break;
+				case EMovementState::AimWalk_State:
+					CurrentWeapon->ShouldReduceDispersion = true;
+					Displacement = FVector(0.0f, 0.0f, 160.0f);
+					break;
+				case EMovementState::Walk_State:
+					Displacement = FVector(0.0f, 0.0f, 120.0f);
+					CurrentWeapon->ShouldReduceDispersion = false;
+					break;
+				case EMovementState::Run_State:
+					Displacement = FVector(0.0f, 0.0f, 120.0f);
+					CurrentWeapon->ShouldReduceDispersion = false;
+					break;
+				case EMovementState::SprintRun_State:
+					break;
+				default:
+					break;
+				}
+
+				CurrentWeapon->ShootEndLocation = ResultHit.Location + Displacement;
+			}
 		}
 	}
-}
+};
 
 void AJunTDSCharacter::CharacterUpdate()
 {
@@ -168,7 +306,6 @@ void AJunTDSCharacter::CharacterUpdate()
 	default:
 		break;
 	}
-
 	GetCharacterMovement()->MaxWalkSpeed = ResSpeed;
 }
 
@@ -176,47 +313,75 @@ void AJunTDSCharacter::ChangeMovementState()
 {
 	FVector LastMovementInputVector = GetLastMovementInputVector();
 	bool IsMovingForward = FVector::DotProduct(LastMovementInputVector, GetActorForwardVector()) > 0;
-	
-	if (SprintRunEnable && !IsMovingForward)
-	{
-		SprintRunEnable = false;
-	}
+	AttackCharEvent(false);
 
-	if (!WalkEnable && !SprintRunEnable && !AimEnable)
+	if (SprintRunEnable)
 	{
-		MovementState = EMovementState::Run_State;
+		WalkEnable = false;
+		AimEnable = false;
+		MovementState = EMovementState::SprintRun_State;
+		AttackCharEvent(false);
 	}
 	else
 	{
-		if (SprintRunEnable && IsMovingForward)
+		if (!WalkEnable && !AimEnable)
 		{
-			WalkEnable = false;
-			AimEnable = false;
-			MovementState = EMovementState::SprintRun_State;
+			MovementState = EMovementState::Run_State;
 		}
-		else
+		else if (WalkEnable && AimEnable)
 		{
-			if (WalkEnable && !SprintRunEnable && AimEnable)
-			{
-				MovementState = EMovementState::AimWalk_State;
-			}
-			else
-			{
-				if (WalkEnable && !SprintRunEnable && !AimEnable)
-				{
-					MovementState = EMovementState::Walk_State;
-				}
-				else
-				{
-					if (!WalkEnable && !SprintRunEnable && AimEnable)
-					{
-						MovementState = EMovementState::Aim_State;
-					}
-				}
-			}
+			MovementState = EMovementState::AimWalk_State;		
+		}
+		else if (WalkEnable)
+		{
+			MovementState = EMovementState::Walk_State;
+		}
+		else if (AimEnable)
+		{
+			MovementState = EMovementState::Aim_State;
 		}
 	}
-
 	CharacterUpdate();
+
+	AWeaponDefault* myWeapon = GetCurrentWeapon();
+	if (myWeapon)
+	{
+		myWeapon->UpdateStateWeapon(MovementState);
+	}
+}
+
+void AJunTDSCharacter::UpdateStateWeapon(EMovementState NewMovementState)
+{
+	ChangeDispersion();
+}
+
+void AJunTDSCharacter::ChangeDispersion()
+{
+
+}
+
+AWeaponDefault* AJunTDSCharacter::GetCurrentWeapon()
+{
+	return CurrentWeapon;
+}
+
+void AJunTDSCharacter::TryReloadWeapon()
+{
+	if (CurrentWeapon)
+	{
+		if (CurrentWeapon->GetWeaponRound() <= CurrentWeapon->WeaponSetting.MaxRound)
+			CurrentWeapon->InitReload();
+	}
+}
+
+void AJunTDSCharacter::WeaponReloadStart(UAnimMontage* Anim)
+{
+	Anim = CurrentWeapon->WeaponSetting.AnimCharReload;
+	GetMesh()->GetAnimInstance()->Montage_Play(Anim, 1.0f);
+}
+
+void AJunTDSCharacter::WeaponReloadEnd()
+{
+
 }
 
