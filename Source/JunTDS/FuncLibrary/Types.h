@@ -19,6 +19,8 @@ struct FBodyPartDamageMultiplier : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float ArmorMultiplier = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float CoefArmorMultiplier = 1.0f;
 };
 
 UENUM(BlueprintType)

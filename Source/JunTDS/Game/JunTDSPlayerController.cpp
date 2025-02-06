@@ -9,11 +9,11 @@
 
 AJunTDSPlayerController::AJunTDSPlayerController()
 {
-	bShowMouseCursor = true;
-	DefaultMouseCursor = EMouseCursor::Crosshairs;
+	/*bShowMouseCursor = true;
+	DefaultMouseCursor = EMouseCursor::Crosshairs;*/
 }
 
-void AJunTDSPlayerController::PlayerTick(float DeltaTime)
+/*void AJunTDSPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
@@ -109,4 +109,4 @@ void AJunTDSPlayerController::OnSetDestinationReleased()
 {
 	// clear flag to indicate we should stop updating the destination
 	bMoveToMouseCursor = false;
-}
+}*/

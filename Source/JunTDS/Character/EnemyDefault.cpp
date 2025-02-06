@@ -119,15 +119,16 @@ float AEnemyDefault::CalculateDamage(const FHitResult& HitResult, float BaseDama
 
     float DamageMultiplier = MultiplierRow->DamageMultiplier;
     float ArmorMultiplier = MultiplierRow->ArmorMultiplier;
+    float CoefArmorMultiplier = MultiplierRow->CoefArmorMultiplier;
   
     if (CurrentArmor <= 0)
     {
-        float FinalDamage = BaseDamage * DamageMultiplier;
+        float FinalDamage = BaseDamage * DamageMultiplier* CoefArmorMultiplier;
         return FMath::Max(FinalDamage, 0.0f);
     }
     else
     {
-        float FinalDamage = (BaseDamage * DamageMultiplier) - ArmorMultiplier;;
+        float FinalDamage = ((BaseDamage * DamageMultiplier) - ArmorMultiplier)* CoefArmorMultiplier;;
         return FMath::Max(FinalDamage, 0.0f);
     }
 }

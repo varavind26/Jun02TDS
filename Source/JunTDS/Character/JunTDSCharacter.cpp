@@ -15,7 +15,7 @@
 #include "Engine/World.h"
 #include "JunTDS/Game/JunTDSGameInstance.h"
 
-AJunTDSCharacter::AJunTDSCharacter()
+/*AJunTDSCharacter::AJunTDSCharacter()
 {
 	// Set size for player capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -98,106 +98,6 @@ void AJunTDSCharacter::BeginPlay()
 	InitWeapon(InitWeaponName);
 }
 
-void AJunTDSCharacter::InitWeapon(FName IdWeaponName)
-{
-	UJunTDSGameInstance* myGI = Cast<UJunTDSGameInstance>(GetGameInstance());
-	FWeaponInfo myWeaponInfo;
-	if (myGI)
-	{
-		if (myGI->GetWeaponInfoByName(IdWeaponName, myWeaponInfo))
-		{
-			if (myWeaponInfo.WeaponClass)
-			{
-				FVector SpawnLocation = FVector(0);
-				FRotator SpawnRotation = FRotator(0);
-
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				SpawnParams.Owner = GetOwner();
-				SpawnParams.Instigator = GetInstigator();
-
-				AWeaponDefault* myWeapon = Cast<AWeaponDefault>(GetWorld()->SpawnActor(myWeaponInfo.WeaponClass, &SpawnLocation, &SpawnRotation, SpawnParams));
-				if (myWeapon)
-				{
-					FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
-					myWeapon->AttachToComponent(GetMesh(), Rule, FName("hand_r_weaponSocket"));
-					CurrentWeapon = myWeapon;
-
-					myWeapon->WeaponSetting = myWeaponInfo;
-					myWeapon->WeaponInfo.Round = myWeaponInfo.MaxRound;
-					myWeapon->ReloadTime = myWeaponInfo.ReloadTime;
-					myWeapon->UpdateStateWeapon(MovementState);
-
-					myWeapon->OnWeaponReloadStart.AddDynamic(this, &AJunTDSCharacter::WeaponReloadStart);
-					myWeapon->OnWeaponReloadEnd.AddDynamic(this, &AJunTDSCharacter::WeaponReloadEnd);
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("ATPSCharacter::InitWeapon - Weapon not found in table -NULL"));
-		}
-	}
-}
-
-void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
-{
-	Super::SetupPlayerInputComponent(NewInputComponent);
-
-	NewInputComponent->BindAxis(TEXT("MoveForward"), this, & AJunTDSCharacter::InputAxisX);
-	NewInputComponent->BindAxis(TEXT("MoveRight"), this, & AJunTDSCharacter::InputAxisY);
-
-	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::InputAttackPressed);
-	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::InputAttackReleased);
-
-	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnSprintPressed);
-	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnSprintReleased);
-
-	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnAimPressed);
-	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnAimReleased);
-
-	NewInputComponent->BindAction(TEXT("ReloadEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::TryReloadWeapon);
-}
-void AJunTDSCharacter::OnAimPressed()
-{
-	AimEnable = true;
-	ChangeMovementState();
-}
-
-void AJunTDSCharacter::OnAimReleased()
-{
-	AimEnable = false;
-	ChangeMovementState();
-}
-
-void AJunTDSCharacter::OnSprintPressed()
-{
-	if (AxisX > 0.1f)
-	{
-		SprintRunEnable = true;
-		AttackCharEvent(false);
-		ChangeMovementState();
-	}
-}
-
-void AJunTDSCharacter::OnSprintReleased()
-{
-	SprintRunEnable = false;
-	ChangeMovementState();
-}
-
-void AJunTDSCharacter::AttackCharEvent(bool bIsFiring)
-{
-	AWeaponDefault* myWeapon = nullptr;
-	myWeapon = GetCurrentWeapon();
-	if (SprintRunEnable)
-	{
-		myWeapon->SetWeaponStateFire(false);
-		return;
-	}
-
-	myWeapon->SetWeaponStateFire(bIsFiring);
-}
 
 void AJunTDSCharacter::InputAxisX(float Value)
 {
@@ -212,16 +112,6 @@ void AJunTDSCharacter::InputAxisX(float Value)
 void AJunTDSCharacter::InputAxisY(float Value)
 {
 	AxisY = SprintRunEnable ? 0.0f : Value;
-}
-
-void AJunTDSCharacter::InputAttackPressed()
-{
-	AttackCharEvent(true);
-}
-
-void AJunTDSCharacter::InputAttackReleased()
-{
-	AttackCharEvent(false);
 }
 
 void AJunTDSCharacter::MovementTick(float DeltaTime)
@@ -282,6 +172,238 @@ void AJunTDSCharacter::MovementTick(float DeltaTime)
 		}
 	}
 };
+
+void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
+{
+	Super::SetupPlayerInputComponent(NewInputComponent);
+
+	NewInputComponent->BindAxis(TEXT("MoveForward"), this, &AJunTDSCharacter::InputAxisX);
+	NewInputComponent->BindAxis(TEXT("MoveRight"), this, &AJunTDSCharacter::InputAxisY);
+
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::InputAttackPressed);
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::InputAttackReleased);
+
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnSprintPressed);
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnSprintReleased);
+
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnAimPressed);
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnAimReleased);
+
+	NewInputComponent->BindAction(TEXT("ReloadEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::TryReloadWeapon);
+}
+
+void AJunTDSCharacter::InitWeapon(FName IdWeaponName)
+{
+	UJunTDSGameInstance* myGI = Cast<UJunTDSGameInstance>(GetGameInstance());
+	FWeaponInfo myWeaponInfo;
+	if (myGI)
+	{
+		if (myGI->GetWeaponInfoByName(IdWeaponName, myWeaponInfo))
+		{
+			if (myWeaponInfo.WeaponClass)
+			{
+				FVector SpawnLocation = FVector(0);
+				FRotator SpawnRotation = FRotator(0);
+
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				SpawnParams.Owner = GetOwner();
+				SpawnParams.Instigator = GetInstigator();
+
+				AWeaponDefault* myWeapon = Cast<AWeaponDefault>(GetWorld()->SpawnActor(myWeaponInfo.WeaponClass, &SpawnLocation, &SpawnRotation, SpawnParams));
+				if (myWeapon)
+				{
+					FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
+					myWeapon->AttachToComponent(GetMesh(), Rule, FName("hand_r_weaponSocket"));
+					CurrentWeapon = myWeapon;
+
+					myWeapon->WeaponSetting = myWeaponInfo;
+					myWeapon->WeaponInfo.Round = myWeaponInfo.MaxRound;
+					myWeapon->ReloadTime = myWeaponInfo.ReloadTime;
+					myWeapon->UpdateStateWeapon(MovementState);
+
+					myWeapon->OnWeaponReloadStart.AddDynamic(this, &AJunTDSCharacter::WeaponReloadStart);
+					myWeapon->OnWeaponReloadEnd.AddDynamic(this, &AJunTDSCharacter::WeaponReloadEnd);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ATPSCharacter::InitWeapon - Weapon not found in table -NULL"));
+		}
+	}
+}*/
+
+AJunTDSCharacter::AJunTDSCharacter()
+{
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+
+	bUseControllerRotationPitch = true;
+	bUseControllerRotationYaw = true;
+	bUseControllerRotationRoll = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+
+	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
+	FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
+	FirstPersonCamera->SetRelativeLocation(FVector (GetMesh()->GetSocketLocation(FName("head"))));
+	FirstPersonCamera->bUsePawnControlRotation = true;
+
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+void AJunTDSCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	MovementTick(DeltaSeconds);
+}
+
+void AJunTDSCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	InitWeapon(InitWeaponName);
+}
+
+void AJunTDSCharacter::InputAxisX(float Value)
+{
+	if (SprintRunEnable && Value <= 0.0f)
+	{
+		OnSprintReleased();
+	}
+
+	AxisX = SprintRunEnable ? FMath::Clamp(Value, 0.0f, 1.0f) : Value;
+}
+
+void AJunTDSCharacter::InputAxisY(float Value)
+{
+	AxisY = SprintRunEnable ? 0.0f : Value;
+}
+
+void AJunTDSCharacter::MovementTick(float DeltaTime)
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(ForwardDirection, AxisX);
+	AddMovementInput(RightDirection, AxisY);
+
+	if (CurrentWeapon)
+	{
+		FVector CameraLoc;
+		FRotator CameraRot;
+		GetController()->GetPlayerViewPoint(CameraLoc, CameraRot);
+
+		const FVector TraceEnd = CameraLoc + (CameraRot.Vector() * 10000.0f);
+		CurrentWeapon->ShootEndLocation = TraceEnd;
+	}
+}
+
+void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
+{
+	Super::SetupPlayerInputComponent(NewInputComponent);
+
+	NewInputComponent->BindAxis(TEXT("MoveForward"), this, &AJunTDSCharacter::InputAxisX);
+	NewInputComponent->BindAxis(TEXT("MoveRight"), this, &AJunTDSCharacter::InputAxisY);
+	NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &APawn::AddControllerYawInput);
+	NewInputComponent->BindAxis(TEXT("LookVertical"), this, &APawn::AddControllerPitchInput);
+
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::InputAttackPressed);
+	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::InputAttackReleased);
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnSprintPressed);
+	NewInputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnSprintReleased);
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::OnAimPressed);
+	NewInputComponent->BindAction(TEXT("AimEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::OnAimReleased);
+	NewInputComponent->BindAction(TEXT("ReloadEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::TryReloadWeapon);
+}
+
+void AJunTDSCharacter::InitWeapon(FName IdWeaponName)
+{
+	UJunTDSGameInstance* myGI = Cast<UJunTDSGameInstance>(GetGameInstance());
+	FWeaponInfo myWeaponInfo;
+
+	if (myGI && myGI->GetWeaponInfoByName(IdWeaponName, myWeaponInfo) && myWeaponInfo.WeaponClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+
+		if (AWeaponDefault* myWeapon = GetWorld()->SpawnActor<AWeaponDefault>(myWeaponInfo.WeaponClass, SpawnParams))
+		{
+			CurrentWeapon = myWeapon;
+
+			FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
+			myWeapon->AttachToComponent(GetMesh(), Rule, FName("hand_r_weaponSocket"));
+			CurrentWeapon = myWeapon;
+
+			myWeapon->WeaponSetting = myWeaponInfo;
+			myWeapon->WeaponInfo.Round = myWeaponInfo.MaxRound;
+			myWeapon->ReloadTime = myWeaponInfo.ReloadTime;
+			myWeapon->UpdateStateWeapon(MovementState);
+
+			myWeapon->OnWeaponReloadStart.AddDynamic(this, &AJunTDSCharacter::WeaponReloadStart);
+			myWeapon->OnWeaponReloadEnd.AddDynamic(this, &AJunTDSCharacter::WeaponReloadEnd);
+		}
+	}
+}
+
+
+void AJunTDSCharacter::OnAimPressed()
+{
+	AimEnable = true;
+	ChangeMovementState();
+}
+
+void AJunTDSCharacter::OnAimReleased()
+{
+	AimEnable = false;
+	ChangeMovementState();
+}
+
+void AJunTDSCharacter::OnSprintPressed()
+{
+	if (AxisX > 0.1f)
+	{
+		SprintRunEnable = true;
+		AttackCharEvent(false);
+		ChangeMovementState();
+	}
+}
+
+void AJunTDSCharacter::OnSprintReleased()
+{
+	SprintRunEnable = false;
+	ChangeMovementState();
+}
+
+
+void AJunTDSCharacter::InputAttackPressed()
+{
+	AttackCharEvent(true);
+}
+
+void AJunTDSCharacter::InputAttackReleased()
+{
+	AttackCharEvent(false);
+}
+
+void AJunTDSCharacter::AttackCharEvent(bool bIsFiring)
+{
+	AWeaponDefault* myWeapon = nullptr;
+	myWeapon = GetCurrentWeapon();
+	if (SprintRunEnable)
+	{
+		myWeapon->SetWeaponStateFire(false);
+		return;
+	}
+
+	myWeapon->SetWeaponStateFire(bIsFiring);
+}
 
 void AJunTDSCharacter::CharacterUpdate()
 {

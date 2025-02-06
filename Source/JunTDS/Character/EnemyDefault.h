@@ -45,6 +45,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void EnemyTakeAnyDamage(const FHitResult& HitResult, float BaseDamage, bool electric, bool chemical);
-	//UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		float CalculateDamage(const FHitResult& HitResult, float BaseDamage);
 };
