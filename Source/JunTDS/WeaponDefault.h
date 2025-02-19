@@ -110,8 +110,10 @@ public:
 		void SetWeaponStateFire(bool bIsFire);
 
 	UFUNCTION(BlueprintCallable)
-	void Fire();
-	float FireTime = 0.0f;
+		void FireLogic();
 
-	
+	UFUNCTION(BlueprintCallable)
+		void Fire();
+
+	float FireTime = 0.0f;
 };

@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "JunTDS/FuncLibrary/Types.h"
+#include "JunTDS/FuncLibrary/HealthComponent.h"
+#include "Engine.h"
 #include "Engine/DataTable.h"
 #include "EnemyDefault.generated.h"
 
@@ -16,26 +17,23 @@ class JUNTDS_API AEnemyDefault : public AActor
 public:
 	AEnemyDefault();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
-		UDataTable* DamageMultiplierTable;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category = Components)
 		class USceneComponent* SceneComponent = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category = Components)
 		class USkeletalMeshComponent* EnemySkeletalMesh = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
-		float MaxHealth = 100.0f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Armor")
-		float MaxArmor = 100.0f;
-
-protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category = Components)
+		class UHealthComponent* HealthComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
-		float CurrentHealth;
+		float CharacterCurrentHealth;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+		float CharacterMaxHealth = 100.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+		float CharacterCurrentArmor;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+		float CharacterMaxArmor = 100.f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Armor")
-		float CurrentArmor;
+protected:
 
 	virtual void BeginPlay() override;
 
@@ -43,8 +41,12 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable)
+	void InitializeHealth();
+	void InitializeArmor();
+	void Dead();
+	void GetCurrentHealth();
+	/*UFUNCTION(BlueprintCallable)
 		void EnemyTakeAnyDamage(const FHitResult& HitResult, float BaseDamage, bool electric, bool chemical);
 	UFUNCTION(BlueprintCallable)
-		float CalculateDamage(const FHitResult& HitResult, float BaseDamage);
+		float CalculateDamage(const FHitResult& HitResult, float BaseDamage);*/
 };

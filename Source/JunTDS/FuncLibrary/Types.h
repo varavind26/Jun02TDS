@@ -6,23 +6,6 @@
 #include "Engine/DataTable.h"
 #include "Types.generated.h"
 
-USTRUCT(BlueprintType)
-struct FBodyPartDamageMultiplier : public FTableRowBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FName BoneName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float DamageMultiplier = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float ArmorMultiplier = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float CoefArmorMultiplier = 1.0f;
-};
-
 UENUM(BlueprintType)
 enum class EMovementState : uint8
 {

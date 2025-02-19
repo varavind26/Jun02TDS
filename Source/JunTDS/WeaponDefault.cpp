@@ -148,6 +148,59 @@ void AWeaponDefault::SetWeaponStateFire(bool bIsFire)
 	FireTimer = 0.01f;
 }
 
+void AWeaponDefault::FireLogic()
+{
+	ChangeDispersionByShot();
+
+	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), WeaponSetting.SoundFireWeapon, ShootLocation->GetComponentLocation());
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponSetting.EffectFireWeapon, ShootLocation->GetComponentTransform());
+
+	int8 NumberProjectile = GetNumberProjectileByShot();
+
+	if (ShootLocation)
+	{
+		FVector SpawnLocation = ShootLocation->GetComponentLocation();
+		FRotator SpawnRotation = ShootLocation->GetComponentRotation();
+		FProjectileInfo ProjectileInfo;
+		ProjectileInfo = GetProjectile();
+
+		FVector EndLocation;
+		for (int8 i = 0; i < NumberProjectile; i++)//Shotgun
+		{
+			EndLocation = GetFireEndLocation();
+
+			FVector Dir = EndLocation - SpawnLocation;
+
+			Dir.Normalize();
+
+			FMatrix myMatrix(Dir, FVector(0, 1, 0), FVector(0, 0, 1), FVector::ZeroVector);
+			SpawnRotation = myMatrix.Rotator();
+
+			if (ProjectileInfo.Projectile)
+			{
+				//Projectile Init ballistic fire
+
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				SpawnParams.Owner = GetOwner();
+				SpawnParams.Instigator = GetInstigator();
+
+				AProjectileDefault* myProjectile = Cast<AProjectileDefault>(GetWorld()->SpawnActor(ProjectileInfo.Projectile, &SpawnLocation, &SpawnRotation, SpawnParams));
+				if (myProjectile)
+				{
+					myProjectile->InitProjectile(WeaponSetting.ProjectileSetting);
+				}
+			}
+			else
+			{
+				//ToDo Projectile null Init trace fire			
+
+				//GetWorld()->LineTraceSingleByChannel()
+			}
+		}
+	}
+}
+
 
 bool AWeaponDefault::CheckWeaponCanFire()
 {
@@ -289,53 +342,5 @@ void AWeaponDefault::Fire()
 {
 	FireTimer = 60/WeaponSetting.RateOfFire;
 	WeaponInfo.Round = WeaponInfo.Round - 1;
-	ChangeDispersionByShot();
-
-	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), WeaponSetting.SoundFireWeapon, ShootLocation->GetComponentLocation());
-	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponSetting.EffectFireWeapon, ShootLocation->GetComponentTransform());
-
-	int8 NumberProjectile = GetNumberProjectileByShot();
-
-	if (ShootLocation)
-	{
-		FVector SpawnLocation = ShootLocation->GetComponentLocation();
-		FRotator SpawnRotation = ShootLocation->GetComponentRotation();
-		FProjectileInfo ProjectileInfo;
-		ProjectileInfo = GetProjectile();
-
-		FVector EndLocation;
-		for (int8 i = 0; i < NumberProjectile; i++)//Shotgun
-		{
-			EndLocation = GetFireEndLocation();
-
-			FVector Dir = EndLocation - SpawnLocation;
-
-			Dir.Normalize();
-
-			FMatrix myMatrix(Dir, FVector(0, 1, 0), FVector(0, 0, 1), FVector::ZeroVector);
-			SpawnRotation = myMatrix.Rotator();
-
-			if (ProjectileInfo.Projectile)
-			{
-				//Projectile Init ballistic fire
-
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				SpawnParams.Owner = GetOwner();
-				SpawnParams.Instigator = GetInstigator();
-
-				AProjectileDefault* myProjectile = Cast<AProjectileDefault>(GetWorld()->SpawnActor(ProjectileInfo.Projectile, &SpawnLocation, &SpawnRotation, SpawnParams));
-				if (myProjectile)
-				{
-					myProjectile->InitProjectile(WeaponSetting.ProjectileSetting);
-				}
-			}
-			else
-			{
-				//ToDo Projectile null Init trace fire			
-
-				//GetWorld()->LineTraceSingleByChannel()
-			}
-		}
-	}
+	FireLogic();
 }
