@@ -100,11 +100,6 @@ public:
 	void InitReload();
 	void FinishReload();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-		bool ShowDebug = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-		float SizeVectorToChangeShootDirectionLogic = 100.0f;
 
 	UFUNCTION(BlueprintCallable)
 		void SetWeaponStateFire(bool bIsFire);

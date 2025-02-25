@@ -111,6 +111,12 @@ struct FProjectileInfo
 		bool bIsElectric = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ProjectileSetting")
 		bool bIsChemical = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+		bool ShowDebug = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+		float SizeVectorToChangeShootDirectionLogic = 100.0f;
 };
 
 USTRUCT(BlueprintType)
@@ -157,7 +163,6 @@ struct FWeaponInfo : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitEffect")
 		UDecalComponent* DecalOnHit = nullptr;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dispersion ")
 		FWeaponDispersion DispersionWeapon;

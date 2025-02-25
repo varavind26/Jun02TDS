@@ -30,28 +30,10 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-	/** Returns TopDownCameraComponent subobject **/
-	//FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
-	/** Returns CameraBoom subobject **/
-	//FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns CursorToWorld subobject **/
-	//FORCEINLINE class UDecalComponent* GetCursorToWorld() { return CursorToWorld; }
-
 private:
-	/** Top down camera */
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	//class UCameraComponent* TopDownCameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCamera;
-
-	/** Camera boom positioning the camera above the character */
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	//class USpringArmComponent* CameraBoom;
-
-	/** A decal that projects to the cursor location. */
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	//class UDecalComponent* CursorToWorld;
 	
 
 public:
@@ -72,10 +54,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector CursorLocation;
-
-	// DEMO
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Demo")
-		//TSubclassOf<AWeaponDefault> InitWeaponClass = nullptr;
 
 	UFUNCTION()
 		void InputAxisX(float value);
@@ -102,10 +80,7 @@ public:
 		void WeaponReloadStart(UAnimMontage* Anim);
 	UFUNCTION()
 		void WeaponReloadEnd();
-	//UFUNCTION()
-		//void WeaponReloadStart_BP(UAnimMontage* Anim);
-	//UFUNCTION()
-		//void WeaponReloadEnd_BP();
+
 	// Ation Events
 	UFUNCTION()
 		void InputAttackPressed();
@@ -134,7 +109,7 @@ public:
 		void ChangeMovementState();
 
 	UFUNCTION()
-		void MovementTick(float DeltaTime);
+		void Movement();
 
 	UFUNCTION()
 		void UpdateStateWeapon(EMovementState NewMovementState);

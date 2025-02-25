@@ -32,7 +32,6 @@ AJunTDSCharacter::AJunTDSCharacter()
 void AJunTDSCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	MovementTick(DeltaSeconds);
 }
 
 void AJunTDSCharacter::BeginPlay()
@@ -49,14 +48,16 @@ void AJunTDSCharacter::InputAxisX(float Value)
 	}
 
 	AxisX = SprintRunEnable ? FMath::Clamp(Value, 0.0f, 1.0f) : Value;
+	Movement();
 }
 
 void AJunTDSCharacter::InputAxisY(float Value)
 {
 	AxisY = SprintRunEnable ? 0.0f : Value;
+	Movement();
 }
 
-void AJunTDSCharacter::MovementTick(float DeltaTime)
+void AJunTDSCharacter::Movement()
 {
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -66,7 +67,6 @@ void AJunTDSCharacter::MovementTick(float DeltaTime)
 
 	AddMovementInput(ForwardDirection, AxisX);
 	AddMovementInput(RightDirection, AxisY);
-
 	if (CurrentWeapon)
 	{
 		FVector CameraLoc;
@@ -315,6 +315,6 @@ void AJunTDSCharacter::WeaponReloadStart(UAnimMontage* Anim)
 
 void AJunTDSCharacter::WeaponReloadEnd()
 {
-
+	ChangeDispersion();
 }
 

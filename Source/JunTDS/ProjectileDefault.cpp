@@ -73,6 +73,10 @@ void AProjectileDefault::BulletCollisionSphereHit(UPrimitiveComponent* HitComp, 
 		if (Cast<AEnemyDefault>(OtherActor))
 		{
 			Cast<AEnemyDefault>(OtherActor)->HealthComponent->TakeAnyDamage(Hit, ProjectileSetting.ProjectileDamage, ProjectileSetting.bIsElectric, ProjectileSetting.bIsChemical);
+			if (ProjectileSetting.ShowDebug)
+			{
+				DrawDebugSphere(GetWorld(), Hit.Location, 1.f, 8, FColor::Red, false, 4.0f);
+			}
 		}
 
 		if (OtherComp->IsSimulatingPhysics())

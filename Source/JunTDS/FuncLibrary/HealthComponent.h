@@ -41,9 +41,6 @@ public:
         UDataTable* DamageMultiplierTable;
 
     UFUNCTION(BlueprintCallable)
-        void ApplyDamage(float Damage);
-
-    UFUNCTION(BlueprintCallable)
         void SetInitialHealth(float InitialHealth);
     UFUNCTION(BlueprintCallable)
         void SetInitialArmor(float InitialArmor);

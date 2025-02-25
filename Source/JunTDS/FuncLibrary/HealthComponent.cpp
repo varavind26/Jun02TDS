@@ -10,10 +10,6 @@ void UHealthComponent::BeginPlay()
     Super::BeginPlay();
 }
 
-void UHealthComponent::ApplyDamage(float Damage)
-{
-}
-
 void UHealthComponent::SetInitialHealth(float InitialHealth)
 {
     CurrentHealth = InitialHealth;

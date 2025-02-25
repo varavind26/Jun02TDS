@@ -1,13 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 #include "WeaponDefault.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
-// Sets default values
 AWeaponDefault::AWeaponDefault()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
@@ -37,8 +34,6 @@ AWeaponDefault::AWeaponDefault()
 	LaserSight->SetupAttachment(RootComponent);
 }
 
-
-// Called when the game starts or when spawned
 void AWeaponDefault::BeginPlay()
 {
 	Super::BeginPlay();
@@ -46,7 +41,6 @@ void AWeaponDefault::BeginPlay()
 	WeaponInit();
 }
 
-// Called every frame
 void AWeaponDefault::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -119,7 +113,7 @@ void AWeaponDefault::DispersionTick(float DeltaTime)
 			}
 		}
 	}
-	if (ShowDebug)
+	if (WeaponSetting.ProjectileSetting.ShowDebug)
 		UE_LOG(LogTemp, Warning, TEXT("Dispersion: MAX = %f. MIN = %f. Current = %f"), CurrentDispersionMax, CurrentDispersionMin, CurrentDispersion);
 }
 
@@ -165,7 +159,7 @@ void AWeaponDefault::FireLogic()
 		ProjectileInfo = GetProjectile();
 
 		FVector EndLocation;
-		for (int8 i = 0; i < NumberProjectile; i++)//Shotgun
+		for (int8 i = 0; i < NumberProjectile; i++)
 		{
 			EndLocation = GetFireEndLocation();
 
@@ -178,8 +172,6 @@ void AWeaponDefault::FireLogic()
 
 			if (ProjectileInfo.Projectile)
 			{
-				//Projectile Init ballistic fire
-
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				SpawnParams.Owner = GetOwner();
@@ -214,7 +206,6 @@ FProjectileInfo AWeaponDefault::GetProjectile()
 
 void AWeaponDefault::UpdateStateWeapon(EMovementState NewMovementState)
 {
-	//ToDo Dispersion
 	BlockFire = false;
 
 	switch (NewMovementState)
@@ -249,8 +240,7 @@ void AWeaponDefault::UpdateStateWeapon(EMovementState NewMovementState)
 		break;
 	case EMovementState::SprintRun_State:
 		BlockFire = true;
-		SetWeaponStateFire(false);//set fire trigger to false
-		//Block Fire
+		SetWeaponStateFire(false);
 		break;
 	default:
 		break;
@@ -281,30 +271,28 @@ FVector AWeaponDefault::GetFireEndLocation() const
 	FVector tmpV = (ShootLocation->GetComponentLocation() - ShootEndLocation);
 	//UE_LOG(LogTemp, Warning, TEXT("Vector: X = %f. Y = %f. Size = %f"), tmpV.X, tmpV.Y, tmpV.Size());
 
-	if (tmpV.Size() > SizeVectorToChangeShootDirectionLogic)
+	if (tmpV.Size() > WeaponSetting.ProjectileSetting.SizeVectorToChangeShootDirectionLogic)
 	{
 		EndLocation = ShootLocation->GetComponentLocation() + ApplyDispersionToShoot((ShootLocation->GetComponentLocation() - ShootEndLocation).GetSafeNormal()) * -20000.0f;
-		if (ShowDebug)
+		if (WeaponSetting.ProjectileSetting.ShowDebug)
 			DrawDebugCone(GetWorld(), ShootLocation->GetComponentLocation(), -(ShootLocation->GetComponentLocation() - ShootEndLocation), WeaponSetting.DistacneTrace, GetCurrentDispersion() * PI / 180.f, GetCurrentDispersion() * PI / 180.f, 32, FColor::Emerald, false, .1f, (uint8)'\000', 1.0f);
 	}
 	else
 	{
 		EndLocation = ShootLocation->GetComponentLocation() + ApplyDispersionToShoot(ShootLocation->GetForwardVector()) * 20000.0f;
-		if (ShowDebug)
+		if (WeaponSetting.ProjectileSetting.ShowDebug)
 			DrawDebugCone(GetWorld(), ShootLocation->GetComponentLocation(), ShootLocation->GetForwardVector(), WeaponSetting.DistacneTrace, GetCurrentDispersion() * PI / 180.f, GetCurrentDispersion() * PI / 180.f, 32, FColor::Emerald, false, .1f, (uint8)'\000', 1.0f);
 	}
 
 
-	if (ShowDebug)
+	if (WeaponSetting.ProjectileSetting.ShowDebug)
 	{
 		//direction weapon look
 		DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), ShootLocation->GetComponentLocation() + ShootLocation->GetForwardVector() * 500.0f, FColor::Cyan, false, 5.f, (uint8)'\000', 0.5f);
 		//direction projectile must fly
 		DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), ShootEndLocation, FColor::Red, false, 5.f, (uint8)'\000', 0.5f);
 		//Direction Projectile Current fly
-		DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), EndLocation, FColor::Black, false, 5.f, (uint8)'\000', 0.5f);
-
-		//DrawDebugSphere(GetWorld(), ShootLocation->GetComponentLocation() + ShootLocation->GetForwardVector()*SizeVectorToChangeShootDirectionLogic, 10.f, 8, FColor::Red, false, 4.0f);
+		DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), EndLocation, FColor::Black, false, 5.f, (uint8)'\000', 0.5f);		
 	}
 	return EndLocation;
 }
@@ -322,10 +310,7 @@ int32 AWeaponDefault::GetWeaponRound()
 void AWeaponDefault::InitReload()
 {
 	WeaponReloading = true;
-
 	ReloadTimer = WeaponSetting.ReloadTime;
-
-	//ToDo Anim reload
 	if (WeaponSetting.AnimCharReload)
 		OnWeaponReloadStart.Broadcast(WeaponSetting.AnimCharReload);
 }
@@ -334,7 +319,6 @@ void AWeaponDefault::FinishReload()
 {
 	WeaponReloading = false;
 	WeaponInfo.Round = WeaponSetting.MaxRound;
-
 	OnWeaponReloadEnd.Broadcast();
 }
 

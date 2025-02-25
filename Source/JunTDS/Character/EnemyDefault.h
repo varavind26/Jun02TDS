@@ -45,8 +45,4 @@ public:
 	void InitializeArmor();
 	void Dead();
 	void GetCurrentHealth();
-	/*UFUNCTION(BlueprintCallable)
-		void EnemyTakeAnyDamage(const FHitResult& HitResult, float BaseDamage, bool electric, bool chemical);
-	UFUNCTION(BlueprintCallable)
-		float CalculateDamage(const FHitResult& HitResult, float BaseDamage);*/
 };
