@@ -74,17 +74,15 @@ public:
 		float MaxHeightToClimb = -190.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
 		float HandUpperPostitionToClimb = 195.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float WallOffset = 80.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector WallHitLocationToClimb;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector WallHitNormalToClimb;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector HeightHitLocationToClimb;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb ")
 		UAnimMontage* ClimbingAnimation = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
-		FVector LastActor;
 
 	//Weapon	
 	AWeaponDefault* CurrentWeapon = nullptr;
@@ -122,7 +120,7 @@ public:
 		void Climbing();
 	UFUNCTION(BlueprintCallable)
 		void OnClimbFinished(UAnimMontage* Montage, bool bInterrupted);
-	
+
 	UFUNCTION()
 		void OnAimPressed();
 	UFUNCTION()

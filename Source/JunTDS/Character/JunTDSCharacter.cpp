@@ -159,8 +159,10 @@ void AJunTDSCharacter::Climbing()
 		FRotator LastActorRotator = GetActorRotation();
 		FVector LastActorLocation = GetActorLocation();
 
-		GetCapsuleComponent()->SetRelativeLocation(FVector(WallHitLocationToClimb.X, WallHitLocationToClimb.Y, (HeightHitLocationToClimb.Z - HandUpperPostitionToClimb)));
-		GetCapsuleComponent()->SetRelativeRotation(LastActorRotator);
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		SetActorLocation(FVector(WallHitLocationToClimb.X+WallHitNormalToClimb.X*WallOffset, WallHitLocationToClimb.Y+WallHitNormalToClimb.Y * WallOffset, (HeightHitLocationToClimb.Z - HandUpperPostitionToClimb)),true);
+		SetActorRotation(LastActorRotator);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AJunTDSCharacter::OnClimbFinished);
@@ -171,12 +173,15 @@ void AJunTDSCharacter::Climbing()
 
 void AJunTDSCharacter::OnClimbFinished(UAnimMontage* Montage, bool bInterrupted)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Climbing animation finished!"));
-	FRotator LastActorRotator = GetActorRotation();
-	GetCapsuleComponent()->SetRelativeLocation(FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, (HeightHitLocationToClimb.Z+96.225031)));
-	bIsClimb = false;
-	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-	GetCharacterMovement()->AdjustFloorHeight(); //FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, HeightHitLocationToClimb.Z));
+	if (Montage == ClimbingAnimation)
+	{
+		//FRotator LastActorRotator = GetActorRotation();
+		//SetActorLocation(FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, (HeightHitLocationToClimb.Z)));
+		bIsClimb = false;
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		MovementState = EMovementState::Aim_State;
+	}
 }
 
 void AJunTDSCharacter::OnSprintPressed()
@@ -241,7 +246,7 @@ bool AJunTDSCharacter::TraceToClimb()
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
 		DrawDebugLine(GetWorld(), HeighTraceStart, HeighTraceEnd, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
+		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 		GetCharacterMovement()->StopMovementImmediately();
 		return true;
 	}
