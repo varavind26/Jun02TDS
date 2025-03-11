@@ -34,10 +34,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCamera;
-	
 
 public:
-	
 	// MOVEMENT
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		EMovementState MovementState = EMovementState::Run_State;
@@ -51,6 +49,8 @@ public:
 		bool RunEnable = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		bool SprintRunEnable = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool bIsClimb = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector CursorLocation;
@@ -62,6 +62,29 @@ public:
 
 	float AxisX = 0.0f;
 	float AxisY = 0.0f;
+
+	// Climb Props
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float DistToObject = 150.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float DistanceToHeightTrace = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float MinHeightToClimb = -110.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float MaxHeightToClimb = -190.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		float HandUpperPostitionToClimb = 195.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector WallHitLocationToClimb;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector WallHitNormalToClimb;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector HeightHitLocationToClimb;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb ")
+		UAnimMontage* ClimbingAnimation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+		FVector LastActor;
 
 	//Weapon	
 	AWeaponDefault* CurrentWeapon = nullptr;
@@ -91,6 +114,14 @@ public:
 		void OnSprintPressed();
 	UFUNCTION()
 		void OnSprintReleased();
+
+	//climb
+	UFUNCTION(BlueprintCallable)
+		bool TraceToClimb();
+	UFUNCTION(BlueprintCallable)
+		void Climbing();
+	UFUNCTION(BlueprintCallable)
+		void OnClimbFinished(UAnimMontage* Montage, bool bInterrupted);
 	
 	UFUNCTION()
 		void OnAimPressed();
