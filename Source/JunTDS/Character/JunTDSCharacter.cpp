@@ -175,7 +175,7 @@ void AJunTDSCharacter::OnClimbFinished(UAnimMontage* Montage, bool bInterrupted)
 	FRotator LastActorRotator = GetActorRotation();
 	GetCapsuleComponent()->SetRelativeLocation(FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, (HeightHitLocationToClimb.Z+96.225031)));
 	bIsClimb = false;
-	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 	GetCharacterMovement()->AdjustFloorHeight(); //FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, HeightHitLocationToClimb.Z));
 }
 
@@ -207,6 +207,7 @@ bool AJunTDSCharacter::TraceToClimb()
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
+
 	FVector PelvisLocation = GetMesh()->GetSocketLocation(TEXT("pelvisSocket"));
 
 	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
@@ -214,9 +215,29 @@ bool AJunTDSCharacter::TraceToClimb()
 	WallHitNormalToClimb = HitResult.Normal;
 	bool bHeighTraceHit = GetWorld()->LineTraceSingleByChannel(HeighTraceHitResult, HeighTraceStart, HeighTraceEnd, ECC_Visibility, QueryParams);
 	HeightHitLocationToClimb = HeighTraceHitResult.Location;
-	float ToClimbValue = (HeightHitLocationToClimb.Z- PelvisLocation.Z);
-	bool CheckClimb = ((ToClimbValue>=MinHeightToClimb) && (ToClimbValue <= MaxHeightToClimb));
-	if (bHeighTraceHit && bHit && CheckClimb && !bIsClimb)
+
+	float ToClimbValue = (HeightHitLocationToClimb.Z - PelvisLocation.Z);
+	bool CheckClimb = ((ToClimbValue >= MinHeightToClimb) && (ToClimbValue <= MaxHeightToClimb));
+
+	// Проверка тегов для объектов трейсов
+	const FName ClimbableTag = TEXT("Climbable");
+	bool bHitClimbable = false;
+	if (bHit)
+	{
+		AActor* HitActor = HitResult.GetActor();
+		UPrimitiveComponent* HitComponent = HitResult.GetComponent();
+		bHitClimbable = (HitActor && HitActor->ActorHasTag(ClimbableTag)) || (HitComponent && HitComponent->ComponentHasTag(ClimbableTag));
+	}
+
+	bool bHeightClimbable = false;
+	if (bHeighTraceHit)
+	{
+		AActor* HeightActor = HeighTraceHitResult.GetActor();
+		UPrimitiveComponent* HeightComponent = HeighTraceHitResult.GetComponent();
+		bHeightClimbable = (HeightActor && HeightActor->ActorHasTag(ClimbableTag)) || (HeightComponent && HeightComponent->ComponentHasTag(ClimbableTag));
+	}
+
+	if (bHeighTraceHit && bHit && CheckClimb && !bIsClimb && bHitClimbable && bHeightClimbable)
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
 		DrawDebugLine(GetWorld(), HeighTraceStart, HeighTraceEnd, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
