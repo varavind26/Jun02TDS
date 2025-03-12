@@ -175,8 +175,6 @@ void AJunTDSCharacter::OnClimbFinished(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage == ClimbingAnimation)
 	{
-		//FRotator LastActorRotator = GetActorRotation();
-		//SetActorLocation(FVector(HeightHitLocationToClimb.X, HeightHitLocationToClimb.Y, (HeightHitLocationToClimb.Z)));
 		bIsClimb = false;
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -201,28 +199,62 @@ void AJunTDSCharacter::OnSprintReleased()
 
 bool AJunTDSCharacter::TraceToClimb()
 {
-	FVector Start = GetActorLocation();
-	FVector End = Start + (GetActorForwardVector() * DistToObject);
+	FVector FwdTraceStart = GetActorLocation();
+	FVector FwdTraceEnd = FwdTraceStart + (GetActorForwardVector() * DistToObject);
 	FHitResult HitResult;
 
 	FVector TraceSize = FVector(0.f, 0.f, 500.f);
-	FVector HeighTraceStart = GetActorLocation() + TraceSize + GetActorForwardVector() * DistanceToHeightTrace;
-	FVector HeighTraceEnd = HeighTraceStart - TraceSize;
-	FHitResult HeighTraceHitResult;
+	FVector HeightTraceStart = GetActorLocation() + TraceSize + GetActorForwardVector() * DistanceToHeightTrace;
+	FVector HeightTraceEnd = HeightTraceStart - TraceSize;
+	FHitResult HeightTraceHitResult;
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
 	FVector PelvisLocation = GetMesh()->GetSocketLocation(TEXT("pelvisSocket"));
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, FwdTraceStart, FwdTraceEnd, ECC_Visibility, QueryParams);
 	WallHitLocationToClimb = HitResult.Location;
 	WallHitNormalToClimb = HitResult.Normal;
-	bool bHeighTraceHit = GetWorld()->LineTraceSingleByChannel(HeighTraceHitResult, HeighTraceStart, HeighTraceEnd, ECC_Visibility, QueryParams);
-	HeightHitLocationToClimb = HeighTraceHitResult.Location;
-
+	bool bHeightTraceHit = GetWorld()->LineTraceSingleByChannel(HeightTraceHitResult, HeightTraceStart, HeightTraceEnd, ECC_Visibility, QueryParams);
+	HeightHitLocationToClimb = HeightTraceHitResult.Location;
+	HeightHitNormalToClimb = HeightTraceHitResult.Normal;
 	float ToClimbValue = (HeightHitLocationToClimb.Z - PelvisLocation.Z);
 	bool CheckClimb = ((ToClimbValue >= MinHeightToClimb) && (ToClimbValue <= MaxHeightToClimb));
+	
+
+	float VecSize = 500.f;
+
+	FHitResult AdditionalHitResult;
+	bool bAdditionalHit = GetWorld()->LineTraceSingleByChannel(AdditionalHitResult,WallHitLocationToClimb,WallHitLocationToClimb+ HeightHitNormalToClimb* VecSize,ECC_Visibility,QueryParams);
+	FVector AdditionalHitLocation;
+	FVector AdditionalHitNormal;
+	if (bAdditionalHit)
+	{
+		AdditionalHitLocation = AdditionalHitResult.Location;
+		AdditionalHitNormal = AdditionalHitResult.Normal;
+	}
+
+	FHitResult SecondAdditionalHitResult;
+	bool bSecondAdditionalHit = GetWorld()->LineTraceSingleByChannel(SecondAdditionalHitResult, HeightHitLocationToClimb,HeightHitLocationToClimb + WallHitNormalToClimb * VecSize,ECC_Visibility,QueryParams);
+
+	FVector SecondAdditionalHitLocation;
+	FVector SecondAdditionalHitNormal;
+
+	if (bSecondAdditionalHit)
+	{
+		SecondAdditionalHitLocation = SecondAdditionalHitResult.Location;
+		SecondAdditionalHitNormal = SecondAdditionalHitResult.Normal;
+	}
+
+	// Теперь находим пересечение двух дополнительных трасс
+	FVector IntersectionPoint;
+	bool IsIntersectionFound = FindIntersectionPoint(WallHitLocationToClimb, WallHitLocationToClimb + HeightHitNormalToClimb * VecSize,HeightHitLocationToClimb, HeightHitLocationToClimb + WallHitNormalToClimb * VecSize,IntersectionPoint);
+
+	if (IsIntersectionFound)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Точка пересечения найдена: %s"), *IntersectionPoint.ToString());
+	}
 
 	// Проверка тегов для объектов трейсов
 	const FName ClimbableTag = TEXT("Climbable");
@@ -235,17 +267,19 @@ bool AJunTDSCharacter::TraceToClimb()
 	}
 
 	bool bHeightClimbable = false;
-	if (bHeighTraceHit)
+	if (bHeightTraceHit)
 	{
-		AActor* HeightActor = HeighTraceHitResult.GetActor();
-		UPrimitiveComponent* HeightComponent = HeighTraceHitResult.GetComponent();
+		AActor* HeightActor = HeightTraceHitResult.GetActor();
+		UPrimitiveComponent* HeightComponent = HeightTraceHitResult.GetComponent();
 		bHeightClimbable = (HeightActor && HeightActor->ActorHasTag(ClimbableTag)) || (HeightComponent && HeightComponent->ComponentHasTag(ClimbableTag));
 	}
 
-	if (bHeighTraceHit && bHit && CheckClimb && !bIsClimb && bHitClimbable && bHeightClimbable)
+	if (bHeightTraceHit && bHit && CheckClimb && !bIsClimb && bHitClimbable && bHeightClimbable)
 	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
-		DrawDebugLine(GetWorld(), HeighTraceStart, HeighTraceEnd, FColor::Red, false, 5.f, (uint8)'\000', 2.f);
+		DrawDebugLine(GetWorld(), FwdTraceStart, FwdTraceEnd, FColor::Red, false, 15.f, (uint8)'\000', 2.f);
+		DrawDebugLine(GetWorld(), HeightTraceStart, HeightTraceEnd, FColor::Yellow, false, 15.f, (uint8)'\000', 2.f);
+		DrawDebugLine(GetWorld(), WallHitLocationToClimb, WallHitLocationToClimb + HeightHitNormalToClimb * VecSize, FColor::Green, false, 15.f, (uint8)'\000', 2.f);
+		DrawDebugLine(GetWorld(), HeightHitLocationToClimb, HeightHitLocationToClimb + WallHitNormalToClimb * VecSize, FColor::Blue, false, 15.f, (uint8)'\000', 2.f);
 		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 		GetCharacterMovement()->StopMovementImmediately();
 		return true;
@@ -254,6 +288,40 @@ bool AJunTDSCharacter::TraceToClimb()
 	{
 		return false;
 	}
+}
+
+bool AJunTDSCharacter::FindIntersectionPoint(const FVector& A1, const FVector& A2, const FVector& B1, const FVector& B2, FVector& OutIntersectionPoint)
+{
+	float Ax1 = A1.X;
+	float Ay1 = A1.Y;
+	float Ax2 = A2.X;
+	float Ay2 = A2.Y;
+
+	float Bx1 = B1.X;
+	float By1 = B1.Y;
+	float Bx2 = B2.X;
+	float By2 = B2.Y;
+
+	// Вычисляем коэффициенты уравнений прямой
+	float Denominator = (Bx2 - Bx1) * (Ay2 - Ay1) - (By2 - By1) * (Ax2 - Ax1);
+
+	if (std::abs(Denominator) < 1e-6f) // Проверяем, чтобы прямые не были параллельны
+		return false;
+
+	float NumeratorA = (Bx2 - Bx1) * (Ay1 - By1) - (By2 - By1) * (Ax1 - Bx1);
+	float NumeratorB = (Ax2 - Ax1) * (Ay1 - By1) - (Ay2 - Ay1) * (Ax1 - Bx1);
+
+	float Ua = NumeratorA / Denominator;
+	float Ub = NumeratorB / Denominator;
+
+	// Проверяем, лежат ли параметры Ua и Ub внутри отрезков
+	if (Ua < 0 || Ua > 1 || Ub < 0 || Ub > 1)
+		return false;
+
+	// Нахождение точки пересечения
+	OutIntersectionPoint = FVector(Ax1 + Ua * (Ax2 - Ax1), Ay1 + Ua * (Ay2 - Ay1), 0.f);
+
+	return true;
 }
 
 void AJunTDSCharacter::InputAttackPressed()

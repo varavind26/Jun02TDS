@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "JunTDS/FuncLibrary/Types.h"
 #include "JunTDS/WeaponDefault.h"
+#include <cmath>
 #include "JunTDSCharacter.generated.h"
 
 USTRUCT(BlueprintType)
@@ -31,6 +32,9 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 private:
+
+
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCamera;
@@ -78,10 +82,15 @@ public:
 		float WallOffset = 80.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector WallHitLocationToClimb;
+	UPROPERTY(BlueprintReadOnly)
 		FVector WallHitNormalToClimb;
+	UPROPERTY(BlueprintReadOnly)
 		FVector HeightHitLocationToClimb;
+	UPROPERTY(BlueprintReadOnly)
+		FVector HeightHitNormalToClimb;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb ")
 		UAnimMontage* ClimbingAnimation = nullptr;
+
 
 
 	//Weapon	
@@ -129,6 +138,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void AttackCharEvent(bool bIsFiring);
 
+	bool FindIntersectionPoint(const FVector& A1, const FVector& A2, const FVector& B1, const FVector& B2, FVector& OutIntersectionPoint);
 	// Tick Func
 
 	UFUNCTION(BlueprintCallable)
