@@ -28,7 +28,7 @@ AJunTDSCharacter::AJunTDSCharacter()
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), TEXT("head"));
 	FirstPersonCamera->bUsePawnControlRotation = true;
-
+	
 	PrimaryActorTick.bCanEverTick = true;
 }
 
