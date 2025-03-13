@@ -64,6 +64,11 @@ public:
 	UFUNCTION()
 		void InputAxisY(float value);
 
+	UFUNCTION()
+		void LookVertical(float value);
+	UFUNCTION()
+		void LookHorizontal(float value);
+
 	float AxisX = 0.0f;
 	float AxisY = 0.0f;
 

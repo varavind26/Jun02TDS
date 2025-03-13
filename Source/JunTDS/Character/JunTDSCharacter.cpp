@@ -62,6 +62,38 @@ void AJunTDSCharacter::InputAxisY(float Value)
 	Movement();
 }
 
+void AJunTDSCharacter::LookHorizontal(float value)
+{
+	if (bIsClimb)
+	{
+		value = 0.f;
+	}
+	else
+	{
+		if (value != 0.f && Controller && Controller->IsLocalPlayerController())
+		{
+			APlayerController* const PC = CastChecked<APlayerController>(Controller);
+			PC->AddYawInput(value);
+		}
+	}
+}
+
+void AJunTDSCharacter::LookVertical(float value)
+{
+	if (bIsClimb || SprintRunEnable)
+	{
+		value = 0.f;
+	}
+	else
+	{
+		if (value != 0.f && Controller && Controller->IsLocalPlayerController())
+		{
+			APlayerController* const PC = CastChecked<APlayerController>(Controller);
+			PC->AddPitchInput(value);
+		}
+	}
+}
+
 void AJunTDSCharacter::Movement()
 {
 	if (!bIsClimb)
@@ -93,8 +125,12 @@ void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputCompon
 
 	NewInputComponent->BindAxis(TEXT("MoveForward"), this, &AJunTDSCharacter::InputAxisX);
 	NewInputComponent->BindAxis(TEXT("MoveRight"), this, &AJunTDSCharacter::InputAxisY);
-	NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &APawn::AddControllerYawInput);
-	NewInputComponent->BindAxis(TEXT("LookVertical"), this, &APawn::AddControllerPitchInput);
+	
+	//NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &APawn::AddControllerYawInput);
+	//NewInputComponent->BindAxis(TEXT("LookVertical"), this, &APawn::AddControllerPitchInput);
+
+	NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &AJunTDSCharacter::LookHorizontal);
+	NewInputComponent->BindAxis(TEXT("LookVertical"), this, &AJunTDSCharacter::LookVertical);
 
 	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Pressed, this, &AJunTDSCharacter::InputAttackPressed);
 	NewInputComponent->BindAction(TEXT("FireEvent"), EInputEvent::IE_Released, this, &AJunTDSCharacter::InputAttackReleased);
@@ -195,6 +231,7 @@ void AJunTDSCharacter::OnSprintPressed()
 void AJunTDSCharacter::OnSprintReleased()
 {
 	SprintRunEnable = false;
+	ChangeMovementState();
 }
 
 bool AJunTDSCharacter::TraceToClimb()
@@ -414,6 +451,7 @@ void AJunTDSCharacter::ChangeMovementState()
 	FVector LastMovementInputVector = GetLastMovementInputVector();
 	bool IsMovingForward = FVector::DotProduct(LastMovementInputVector, GetActorForwardVector()) > 0;
 	AttackCharEvent(false);
+
 	if (bIsClimb)
 	{
 		WalkEnable = false;
@@ -451,32 +489,7 @@ void AJunTDSCharacter::ChangeMovementState()
 			}
 		}
 	}
-	/*if (SprintRunEnable)
-	{
-		WalkEnable = false;
-		AimEnable = false;
-		MovementState = EMovementState::SprintRun_State;
-		AttackCharEvent(false);
-	}
-	else
-	{
-		if (!WalkEnable && !AimEnable)
-		{
-			MovementState = EMovementState::Run_State;
-		}
-		else if (WalkEnable && AimEnable)
-		{
-			MovementState = EMovementState::AimWalk_State;		
-		}
-		else if (WalkEnable)
-		{
-			MovementState = EMovementState::Walk_State;
-		}
-		else if (AimEnable)
-		{
-			MovementState = EMovementState::Aim_State;
-		}
-	}*/
+
 	CharacterUpdate();
 
 	AWeaponDefault* myWeapon = GetCurrentWeapon();
