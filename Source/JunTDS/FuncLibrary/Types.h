@@ -14,7 +14,7 @@ enum class EMovementState : uint8
 	Walk_State UMETA(DispalyName = "Walk State"),
 	Run_State UMETA(DispalyName = "Run State"),
 	SprintRun_State UMETA(DispalyName = "Sprint Run State"),
-	Climb_State UMETA(DispalyName = "Climb State"),
+	Traversal_State UMETA(DispalyName = "Climb State"),
 };
 
 USTRUCT(BlueprintType)

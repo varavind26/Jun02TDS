@@ -64,7 +64,7 @@ void AJunTDSCharacter::InputAxisY(float Value)
 
 void AJunTDSCharacter::LookHorizontal(float value)
 {
-	if (bIsClimb)
+	if (bIsClimb || bIsMantle || bIsHurdle)
 	{
 		value = 0.f;
 	}
@@ -80,7 +80,7 @@ void AJunTDSCharacter::LookHorizontal(float value)
 
 void AJunTDSCharacter::LookVertical(float value)
 {
-	if (bIsClimb || SprintRunEnable)
+	if (bIsClimb || SprintRunEnable || bIsMantle || bIsHurdle)
 	{
 		value = 0.f;
 	}
@@ -96,7 +96,7 @@ void AJunTDSCharacter::LookVertical(float value)
 
 void AJunTDSCharacter::Movement()
 {
-	if (!bIsClimb)
+	if (!bIsClimb || !bIsMantle || !bIsHurdle)
 	{
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -125,9 +125,6 @@ void AJunTDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputCompon
 
 	NewInputComponent->BindAxis(TEXT("MoveForward"), this, &AJunTDSCharacter::InputAxisX);
 	NewInputComponent->BindAxis(TEXT("MoveRight"), this, &AJunTDSCharacter::InputAxisY);
-	
-	//NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &APawn::AddControllerYawInput);
-	//NewInputComponent->BindAxis(TEXT("LookVertical"), this, &APawn::AddControllerPitchInput);
 
 	NewInputComponent->BindAxis(TEXT("LookHorizontal"), this, &AJunTDSCharacter::LookHorizontal);
 	NewInputComponent->BindAxis(TEXT("LookVertical"), this, &AJunTDSCharacter::LookVertical);
@@ -188,22 +185,53 @@ void AJunTDSCharacter::OnAimReleased()
 
 void AJunTDSCharacter::Climbing()
 {
-	if (ClimbingAnimation != nullptr && TraceToClimb())
+	if (ClimbingAnimation != nullptr && Traversal() && bIsClimb)
 	{
-		bIsClimb = true;
-		MovementState = EMovementState::Climb_State;
+		MovementState = EMovementState::Traversal_State;
 		FRotator LastActorRotator = GetActorRotation();
 		FVector LastActorLocation = GetActorLocation();
 
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-		SetActorLocation(FVector(WallHitLocationToClimb.X+WallHitNormalToClimb.X*WallOffset, WallHitLocationToClimb.Y+WallHitNormalToClimb.Y * WallOffset, (HeightHitLocationToClimb.Z - HandUpperPostitionToClimb)),true);
+		SetActorLocation(FVector(WallHitLocationToClimb.X + WallHitNormalToClimb.X * WallOffset, WallHitLocationToClimb.Y + WallHitNormalToClimb.Y * WallOffset, (HeightHitLocationToClimb.Z - ClimbHandHeight)), true);
 		SetActorRotation(LastActorRotator);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AJunTDSCharacter::OnClimbFinished);
 		AnimInstance->OnMontageEnded.AddDynamic(this, &AJunTDSCharacter::OnClimbFinished);
 		AnimInstance->Montage_Play(ClimbingAnimation, 1.0f);
+	}
+	else if (MantleAnimation != nullptr && Traversal() && bIsMantle)
+	{
+		MovementState = EMovementState::Traversal_State;
+		FRotator LastActorRotator = GetActorRotation();
+		FVector LastActorLocation = GetActorLocation();
+
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		SetActorLocation(FVector(WallHitLocationToClimb.X + WallHitNormalToClimb.X * WallOffset, WallHitLocationToClimb.Y + WallHitNormalToClimb.Y * WallOffset, (HeightHitLocationToClimb.Z - MantleHandHeight)), true);
+		SetActorRotation(LastActorRotator);
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AJunTDSCharacter::OnClimbFinished);
+		AnimInstance->OnMontageEnded.AddDynamic(this, &AJunTDSCharacter::OnClimbFinished);
+		AnimInstance->Montage_Play(MantleAnimation, 1.0f);
+	}
+	else if (HurdleAnimation != nullptr && Traversal() && bIsHurdle)
+	{
+		MovementState = EMovementState::Traversal_State;
+		FRotator LastActorRotator = GetActorRotation();
+		FVector LastActorLocation = GetActorLocation();
+
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		SetActorLocation(FVector(WallHitLocationToClimb.X + WallHitNormalToClimb.X * WallOffset, WallHitLocationToClimb.Y + WallHitNormalToClimb.Y * WallOffset, (WallHitLocationToClimb.Z + HurdleHandHeight)), true);
+		SetActorRotation(LastActorRotator);
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AJunTDSCharacter::OnClimbFinished);
+		AnimInstance->OnMontageEnded.AddDynamic(this, &AJunTDSCharacter::OnClimbFinished);
+		AnimInstance->Montage_Play(HurdleAnimation, 1.0f);
 	}
 }
 
@@ -215,6 +243,100 @@ void AJunTDSCharacter::OnClimbFinished(UAnimMontage* Montage, bool bInterrupted)
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 		MovementState = EMovementState::Aim_State;
+	}
+	if (Montage == MantleAnimation)
+	{
+		bIsMantle = false;
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		MovementState = EMovementState::Aim_State;
+	}
+	if (Montage == HurdleAnimation)
+	{
+		bIsHurdle = false;
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		MovementState = EMovementState::Aim_State;
+	}
+}
+
+bool AJunTDSCharacter::Traversal()
+{
+	float CapsuleSize = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	FVector FwdTraceStart = GetActorLocation() - FVector(0.f, 0.f, CapsuleSize/2);
+	FVector FwdTraceEnd = FwdTraceStart + (GetActorForwardVector() * DistToObject);
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	FVector PelvisLocation = GetMesh()->GetSocketLocation(TEXT("pelvisSocket"));
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, FwdTraceStart, FwdTraceEnd, ECC_Visibility, QueryParams);
+	WallHitLocationToClimb = HitResult.Location;
+	WallHitNormalToClimb = HitResult.Normal;
+	AActor* HitActorFwd = HitResult.GetActor();
+	UPrimitiveComponent* HitComponentFwd = HitResult.GetComponent();
+
+	FVector TraceSize = FVector(0.f, 0.f, 500.f);
+	FVector HeightTraceStart = WallHitLocationToClimb + TraceSize + GetActorForwardVector() * DistanceToHeightTrace;
+	FVector HeightTraceEnd = HeightTraceStart - TraceSize;
+	FHitResult HeightTraceHitResult;
+
+	bool bHeightTraceHit = GetWorld()->LineTraceSingleByChannel(HeightTraceHitResult, HeightTraceStart, HeightTraceEnd, ECC_Visibility, QueryParams);
+	HeightHitLocationToClimb = HeightTraceHitResult.Location;
+	HeightHitNormalToClimb = HeightTraceHitResult.Normal;
+	AActor* HitActorHeight = HeightTraceHitResult.GetActor();
+	UPrimitiveComponent* HitComponentHeight = HeightTraceHitResult.GetComponent();
+
+	float ToTraversalValue = HeightHitLocationToClimb.Z - PelvisLocation.Z;
+	float ToHurdleValue = PelvisLocation.Z- WallHitLocationToClimb.Z;
+	
+	bool CheckHitObjectType = (HitActorFwd == HitActorHeight) || (HitComponentHeight == HitComponentFwd);
+	bool CheckClimb = ((ToTraversalValue >= MinHeightToClimb) && (ToTraversalValue <= MaxHeightToClimb)) && CheckHitObjectType;
+	bool CheckMantle = ((ToTraversalValue >= MinHeightToMantle) && (ToTraversalValue <= MaxHeightToMantle)) && CheckHitObjectType;
+	bool CheckHurdle = ((ToHurdleValue >= MinHeightToHurdle) && (ToHurdleValue <= MaxHeightToHurdle)) && !CheckHitObjectType;
+	
+	const FName ClimbableTag = TEXT("Climbable");
+	bool bHitClimbable = false;
+	if (bHit)
+	{
+		AActor* HitActor = HitResult.GetActor();
+		UPrimitiveComponent* HitComponent = HitResult.GetComponent();
+		bHitClimbable = (HitActorFwd && HitActor->ActorHasTag(ClimbableTag)) || (HitComponentFwd && HitComponent->ComponentHasTag(ClimbableTag));
+	}
+
+	bool TraversalSelect = CheckClimb || CheckMantle || CheckHurdle;
+
+	if (TraversalSelect && (!bIsClimb || !bIsMantle || !bIsHurdle) && bHitClimbable)
+	{
+		DrawDebugLine(GetWorld(), FwdTraceStart, FwdTraceEnd, FColor::Red, false, 15.f, (uint8)'\000', 2.f);
+		DrawDebugLine(GetWorld(), HeightTraceStart, HeightTraceEnd, FColor::Yellow, false, 15.f, (uint8)'\000', 2.f);
+		if (TraversalSelect == CheckClimb)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Climb!"));
+			GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+			GetCharacterMovement()->StopMovementImmediately();
+			bIsClimb = true;
+		}
+		else if (TraversalSelect == CheckMantle)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Mantle!"));
+			GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+			GetCharacterMovement()->StopMovementImmediately();
+			bIsMantle = true;
+		}
+		else if (TraversalSelect == CheckHurdle)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Hurdle!"));
+			GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+			GetCharacterMovement()->StopMovementImmediately();
+			bIsHurdle = true;
+		}
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }
 
@@ -228,137 +350,11 @@ void AJunTDSCharacter::OnSprintPressed()
 	}
 }
 
+
 void AJunTDSCharacter::OnSprintReleased()
 {
 	SprintRunEnable = false;
 	ChangeMovementState();
-}
-
-bool AJunTDSCharacter::TraceToClimb()
-{
-	FVector FwdTraceStart = GetActorLocation();
-	FVector FwdTraceEnd = FwdTraceStart + (GetActorForwardVector() * DistToObject);
-	FHitResult HitResult;
-
-	FVector TraceSize = FVector(0.f, 0.f, 500.f);
-	FVector HeightTraceStart = GetActorLocation() + TraceSize + GetActorForwardVector() * DistanceToHeightTrace;
-	FVector HeightTraceEnd = HeightTraceStart - TraceSize;
-	FHitResult HeightTraceHitResult;
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	FVector PelvisLocation = GetMesh()->GetSocketLocation(TEXT("pelvisSocket"));
-
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, FwdTraceStart, FwdTraceEnd, ECC_Visibility, QueryParams);
-	WallHitLocationToClimb = HitResult.Location;
-	WallHitNormalToClimb = HitResult.Normal;
-	bool bHeightTraceHit = GetWorld()->LineTraceSingleByChannel(HeightTraceHitResult, HeightTraceStart, HeightTraceEnd, ECC_Visibility, QueryParams);
-	HeightHitLocationToClimb = HeightTraceHitResult.Location;
-	HeightHitNormalToClimb = HeightTraceHitResult.Normal;
-	float ToClimbValue = (HeightHitLocationToClimb.Z - PelvisLocation.Z);
-	bool CheckClimb = ((ToClimbValue >= MinHeightToClimb) && (ToClimbValue <= MaxHeightToClimb));
-	
-
-	float VecSize = 500.f;
-
-	FHitResult AdditionalHitResult;
-	bool bAdditionalHit = GetWorld()->LineTraceSingleByChannel(AdditionalHitResult,WallHitLocationToClimb,WallHitLocationToClimb+ HeightHitNormalToClimb* VecSize,ECC_Visibility,QueryParams);
-	FVector AdditionalHitLocation;
-	FVector AdditionalHitNormal;
-	if (bAdditionalHit)
-	{
-		AdditionalHitLocation = AdditionalHitResult.Location;
-		AdditionalHitNormal = AdditionalHitResult.Normal;
-	}
-
-	FHitResult SecondAdditionalHitResult;
-	bool bSecondAdditionalHit = GetWorld()->LineTraceSingleByChannel(SecondAdditionalHitResult, HeightHitLocationToClimb,HeightHitLocationToClimb + WallHitNormalToClimb * VecSize,ECC_Visibility,QueryParams);
-
-	FVector SecondAdditionalHitLocation;
-	FVector SecondAdditionalHitNormal;
-
-	if (bSecondAdditionalHit)
-	{
-		SecondAdditionalHitLocation = SecondAdditionalHitResult.Location;
-		SecondAdditionalHitNormal = SecondAdditionalHitResult.Normal;
-	}
-
-	// Теперь находим пересечение двух дополнительных трасс
-	FVector IntersectionPoint;
-	bool IsIntersectionFound = FindIntersectionPoint(WallHitLocationToClimb, WallHitLocationToClimb + HeightHitNormalToClimb * VecSize,HeightHitLocationToClimb, HeightHitLocationToClimb + WallHitNormalToClimb * VecSize,IntersectionPoint);
-
-	if (IsIntersectionFound)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Точка пересечения найдена: %s"), *IntersectionPoint.ToString());
-	}
-
-	// Проверка тегов для объектов трейсов
-	const FName ClimbableTag = TEXT("Climbable");
-	bool bHitClimbable = false;
-	if (bHit)
-	{
-		AActor* HitActor = HitResult.GetActor();
-		UPrimitiveComponent* HitComponent = HitResult.GetComponent();
-		bHitClimbable = (HitActor && HitActor->ActorHasTag(ClimbableTag)) || (HitComponent && HitComponent->ComponentHasTag(ClimbableTag));
-	}
-
-	bool bHeightClimbable = false;
-	if (bHeightTraceHit)
-	{
-		AActor* HeightActor = HeightTraceHitResult.GetActor();
-		UPrimitiveComponent* HeightComponent = HeightTraceHitResult.GetComponent();
-		bHeightClimbable = (HeightActor && HeightActor->ActorHasTag(ClimbableTag)) || (HeightComponent && HeightComponent->ComponentHasTag(ClimbableTag));
-	}
-
-	if (bHeightTraceHit && bHit && CheckClimb && !bIsClimb && bHitClimbable && bHeightClimbable)
-	{
-		DrawDebugLine(GetWorld(), FwdTraceStart, FwdTraceEnd, FColor::Red, false, 15.f, (uint8)'\000', 2.f);
-		DrawDebugLine(GetWorld(), HeightTraceStart, HeightTraceEnd, FColor::Yellow, false, 15.f, (uint8)'\000', 2.f);
-		DrawDebugLine(GetWorld(), WallHitLocationToClimb, WallHitLocationToClimb + HeightHitNormalToClimb * VecSize, FColor::Green, false, 15.f, (uint8)'\000', 2.f);
-		DrawDebugLine(GetWorld(), HeightHitLocationToClimb, HeightHitLocationToClimb + WallHitNormalToClimb * VecSize, FColor::Blue, false, 15.f, (uint8)'\000', 2.f);
-		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-		GetCharacterMovement()->StopMovementImmediately();
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool AJunTDSCharacter::FindIntersectionPoint(const FVector& A1, const FVector& A2, const FVector& B1, const FVector& B2, FVector& OutIntersectionPoint)
-{
-	float Ax1 = A1.X;
-	float Ay1 = A1.Y;
-	float Ax2 = A2.X;
-	float Ay2 = A2.Y;
-
-	float Bx1 = B1.X;
-	float By1 = B1.Y;
-	float Bx2 = B2.X;
-	float By2 = B2.Y;
-
-	// Вычисляем коэффициенты уравнений прямой
-	float Denominator = (Bx2 - Bx1) * (Ay2 - Ay1) - (By2 - By1) * (Ax2 - Ax1);
-
-	if (std::abs(Denominator) < 1e-6f) // Проверяем, чтобы прямые не были параллельны
-		return false;
-
-	float NumeratorA = (Bx2 - Bx1) * (Ay1 - By1) - (By2 - By1) * (Ax1 - Bx1);
-	float NumeratorB = (Ax2 - Ax1) * (Ay1 - By1) - (Ay2 - Ay1) * (Ax1 - Bx1);
-
-	float Ua = NumeratorA / Denominator;
-	float Ub = NumeratorB / Denominator;
-
-	// Проверяем, лежат ли параметры Ua и Ub внутри отрезков
-	if (Ua < 0 || Ua > 1 || Ub < 0 || Ub > 1)
-		return false;
-
-	// Нахождение точки пересечения
-	OutIntersectionPoint = FVector(Ax1 + Ua * (Ax2 - Ax1), Ay1 + Ua * (Ay2 - Ay1), 0.f);
-
-	return true;
 }
 
 void AJunTDSCharacter::InputAttackPressed()
@@ -452,12 +448,12 @@ void AJunTDSCharacter::ChangeMovementState()
 	bool IsMovingForward = FVector::DotProduct(LastMovementInputVector, GetActorForwardVector()) > 0;
 	AttackCharEvent(false);
 
-	if (bIsClimb)
+	if (bIsClimb || bIsMantle || bIsHurdle)
 	{
 		WalkEnable = false;
 		AimEnable = false;
 		SprintRunEnable = false;
-		MovementState = EMovementState::Climb_State;
+		MovementState = EMovementState::Traversal_State;
 		AttackCharEvent(false);
 	}
 	else

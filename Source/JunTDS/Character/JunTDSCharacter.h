@@ -53,8 +53,7 @@ public:
 		bool RunEnable = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		bool SprintRunEnable = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-		bool bIsClimb = false;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector CursorLocation;
@@ -73,19 +72,44 @@ public:
 	float AxisY = 0.0f;
 
 	// Climb Props
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+	UPROPERTY(BlueprintReadOnly)
+		bool bIsClimb = false;
+	UPROPERTY(BlueprintReadOnly)
+		bool bIsMantle = false;
+	UPROPERTY(BlueprintReadOnly)
+		bool bIsHurdle = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
 		float DistToObject = 150.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
 		float DistanceToHeightTrace = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
-		float MinHeightToClimb = -110.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
-		float MaxHeightToClimb = -190.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
-		float HandUpperPostitionToClimb = 195.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
 		float WallOffset = 80.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MinHeightToClimb = -110.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MaxHeightToClimb = -190.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float ClimbHandHeight = 158.f;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MinHeightToMantle = 60.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MaxHeightToMantle = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MantleHandHeight = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MinHeightToHurdle = 60.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float MaxHeightToHurdle = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		float HurdleHandHeight = 100.f;
+	
+
+	UPROPERTY(BlueprintReadOnly)
 		FVector WallHitLocationToClimb;
 	UPROPERTY(BlueprintReadOnly)
 		FVector WallHitNormalToClimb;
@@ -93,8 +117,14 @@ public:
 		FVector HeightHitLocationToClimb;
 	UPROPERTY(BlueprintReadOnly)
 		FVector HeightHitNormalToClimb;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Climb ")
+
+	//Animation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
 		UAnimMontage* ClimbingAnimation = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		UAnimMontage* MantleAnimation = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+		UAnimMontage* HurdleAnimation = nullptr;
 
 
 
@@ -129,7 +159,7 @@ public:
 
 	//climb
 	UFUNCTION(BlueprintCallable)
-		bool TraceToClimb();
+		bool Traversal();
 	UFUNCTION(BlueprintCallable)
 		void Climbing();
 	UFUNCTION(BlueprintCallable)
